@@ -33,7 +33,7 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
         pins: list[dict] = []
 
         while no_new_count < 3:
-            if limit and len(pins) >= limit:
+            if limit is not None and len(pins) >= limit:
                 break
 
             await page.evaluate("window.scrollBy(0, 2000)")
@@ -98,7 +98,7 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
                     "board_url": canonical_url,
                 })
 
-                if limit and len(pins) >= limit:
+                if limit is not None and len(pins) >= limit:
                     break
 
             no_new_count = 0 if new_found > 0 else no_new_count + 1

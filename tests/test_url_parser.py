@@ -55,6 +55,11 @@ class TestParseInvalidURLs:
         with pytest.raises(ValueError, match="Not a Pinterest"):
             parse_board_url("https://example.com/foo/bar")
 
+    def test_deceptive_hostname_containing_pinterest(self):
+        """Regression: notpinterest.com must be rejected (not just substring match)."""
+        with pytest.raises(ValueError, match="Not a Pinterest"):
+            parse_board_url("https://notpinterest.com/johndoe/boardname")
+
     def test_reserved_path(self):
         with pytest.raises(ValueError, match="reserved"):
             parse_board_url("https://www.pinterest.com/search/pins")

@@ -28,7 +28,9 @@ def parse_board_url(url: str) -> dict:
     parsed = urlparse(url)
 
     # Validate host
-    if parsed.hostname and "pinterest" not in parsed.hostname:
+    if parsed.hostname and not (
+        parsed.hostname == "pinterest.com" or parsed.hostname.endswith(".pinterest.com")
+    ):
         raise ValueError(f"Not a Pinterest URL: {raw}")
 
     path = parsed.path.strip("/")
