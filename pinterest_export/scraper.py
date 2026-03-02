@@ -76,10 +76,26 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
                     if img:
                         srcset = await img.get_attribute("srcset") or ""
                         if srcset:
-                            # Pick highest resolution (last entry)
-                            entries = [e.strip().split() for e in srcset.split(",") if e.strip()]
-                            if entries:
-                                image_url = entries[-1][0]
+                            # Pick highest resolution by parsing width descriptors (e.g. "750w")
+                            best_url = ""
+                            best_w = -1
+                            for part in srcset.split(","):
+                                tokens = part.strip().split()
+                                if not tokens:
+                                    continue
+                                url_candidate = tokens[0]
+                                w = 0
+                                if len(tokens) > 1:
+                                    desc = tokens[1].lower()
+                                    if desc.endswith("w"):
+                                        try:
+                                            w = int(desc[:-1])
+                                        except ValueError:
+                                            pass
+                                if w > best_w:
+                                    best_w = w
+                                    best_url = url_candidate
+                            image_url = best_url
                         if not image_url:
                             image_url = await img.get_attribute("src") or ""
 
