@@ -6,11 +6,18 @@ import logging
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
 
+from pinterest_export.models import Pin
+
 logger = logging.getLogger(__name__)
 
 
-async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dict]:
-    """Scrape pins from a Pinterest board URL."""
+async def scrape_board(canonical_url: str, limit: int | None = None) -> list[Pin]:
+    """Scrape pins from a Pinterest board URL.
+
+    Returns:
+        A list of :class:`~pinterest_export.models.Pin` instances, deduplicated
+        by pin ID and ordered by discovery.
+    """
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         try:
@@ -37,7 +44,7 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
             # Scroll and collect
             no_new_count = 0
             seen_ids: set[str] = set()
-            pins: list[dict] = []
+            pins: list[Pin] = []
 
             while no_new_count < 3:
                 if limit is not None and len(pins) >= limit:
@@ -112,14 +119,14 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
                         if link.startswith("/"):
                             link = "https://www.pinterest.com" + link
 
-                    pins.append({
-                        "id": pin_id,
-                        "image_url": image_url,
-                        "title": title,
-                        "description": "",
-                        "link": link,
-                        "board_url": canonical_url,
-                    })
+                    pins.append(Pin(
+                        id=pin_id,
+                        image_url=image_url,
+                        title=title,
+                        description="",
+                        link=link,
+                        board_url=canonical_url,
+                    ))
 
                     if limit is not None and len(pins) >= limit:
                         break
@@ -132,6 +139,6 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[dic
     return pins
 
 
-def scrape_board_sync(canonical_url: str, limit: int | None = None) -> list[dict]:
+def scrape_board_sync(canonical_url: str, limit: int | None = None) -> list[Pin]:
     """Synchronous wrapper for scrape_board."""
     return asyncio.run(scrape_board(canonical_url, limit))

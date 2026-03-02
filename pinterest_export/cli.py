@@ -31,6 +31,6 @@ def main(url: str, limit: int | None):
 
     console.print(f"\n[bold green]Done![/bold green] Found [bold]{len(pins)}[/bold] pins.")
     for pin in pins[:5]:
-        console.print(f"  • {pin['id']}: {pin['title'][:60] or '(no title)'}")
+        console.print(f"  • {pin.id}: {pin.title[:60] or '(no title)'}")
     if len(pins) > 5:
         console.print(f"  ... and {len(pins) - 5} more")
