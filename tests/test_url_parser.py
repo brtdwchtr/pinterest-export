@@ -40,7 +40,7 @@ class TestParseInvalidURLs:
             parse_board_url("")
 
     def test_short_link(self):
-        with pytest.raises(ValueError, match="pin.it"):
+        with pytest.raises(ValueError, match=r"pin\.it"):
             parse_board_url("https://pin.it/abc123")
 
     def test_pin_url(self):
