@@ -58,27 +58,27 @@ def export_markdown(
         image_paths: Optional mapping of pin_id → local cached image path.
     """
     lines: list[str] = [
-        f"# Pinterest Board Export",
-        f"",
+        "# Pinterest Board Export",
+        "",
         f"**Source:** {board_url}  ",
         f"**Exported:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  ",
         f"**Pin count:** {len(pins)}",
-        f"",
-        f"---",
-        f"",
+        "",
+        "---",
+        "",
     ]
 
     for i, pin in enumerate(pins, 1):
         lines.append(f"## Pin {i} — {pin.title or '(no title)'}")
-        lines.append(f"")
+        lines.append("")
         if pin.description:
             lines.append(f"**Description:** {pin.description}")
-            lines.append(f"")
+            lines.append("")
         lines.append(f"- **Pinterest link:** {pin.link}")
         lines.append(f"- **Image URL:** {pin.image_url}")
         if image_paths and pin.id in image_paths:
             lines.append(f"- **Local image:** {image_paths[pin.id]}")
-        lines.append(f"")
+        lines.append("")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("\n".join(lines), encoding="utf-8")
