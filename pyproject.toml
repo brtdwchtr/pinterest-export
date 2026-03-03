@@ -1,8 +1,28 @@
 [project]
 name = "pinterest-export"
 version = "0.1.0"
-description = "Scrape Pinterest boards, AI-analyze pins, generate HTML galleries"
+description = "Scrape public Pinterest boards — export to JSON, Markdown, and cached images"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
+authors = [
+    { name = "Bart De Wachter" }
+]
+keywords = ["pinterest", "scraper", "export", "cli", "markdown", "json"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Utilities",
+]
 dependencies = [
     "playwright",
     "httpx",
@@ -17,6 +37,11 @@ dev = ["pytest", "ruff", "black"]
 
 [project.scripts]
 pinterest-export = "pinterest_export.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/brtdwchtr/pinterest-export"
+Repository = "https://github.com/brtdwchtr/pinterest-export"
+Issues = "https://github.com/brtdwchtr/pinterest-export/issues"
 
 [build-system]
 requires = ["setuptools>=64"]
