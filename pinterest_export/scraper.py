@@ -140,7 +140,10 @@ async def scrape_board(
                     ))
 
                     if on_pin_found is not None:
-                        on_pin_found(len(pins))
+                        try:
+                            on_pin_found(len(pins))
+                        except Exception:
+                            pass
 
                     if limit is not None and len(pins) >= limit:
                         break

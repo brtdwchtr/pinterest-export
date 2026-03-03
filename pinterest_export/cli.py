@@ -68,6 +68,10 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
     Outputs board.json (structured metadata) and board.md (LLM-optimised Markdown)
     to OUTPUT_DIR.  Use --cache-images to also download pin images locally.
     """
+    if limit is not None and limit <= 0:
+        console.print("[red]Error:[/red] --limit must be a positive integer.")
+        raise SystemExit(1)
+
     # ── Parse URL ────────────────────────────────────────────────────────────
     try:
         parsed = parse_board_url(url)
@@ -78,7 +82,7 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
     canonical = parsed["canonical"]
     board_slug = f"{parsed['username']}/{parsed['boardname']}"
 
-    console.rule(f"[bold magenta]pinterest-export[/bold magenta]")
+    console.rule("[bold magenta]pinterest-export[/bold magenta]")
     console.print(f"  Board : [cyan]{board_slug}[/cyan]")
     console.print(f"  URL   : [dim]{canonical}[/dim]")
     if limit:
@@ -115,7 +119,6 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
             console=console,
         ) as progress:
             task = progress.add_task("Downloading images…", total=len(pins))
-            completed = [0]
 
             async def _download_with_progress() -> dict[str, Path]:
                 from pinterest_export.image_cache import _download_one, DEFAULT_CACHE_DIR, DEFAULT_RATE_LIMIT, MAX_CONCURRENCY
