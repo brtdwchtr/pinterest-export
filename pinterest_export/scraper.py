@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from typing import Callable
 
 from playwright.async_api import Error as PlaywrightError
 from playwright.async_api import async_playwright
@@ -11,8 +12,18 @@ from pinterest_export.models import Pin
 logger = logging.getLogger(__name__)
 
 
-async def scrape_board(canonical_url: str, limit: int | None = None) -> list[Pin]:
+async def scrape_board(
+    canonical_url: str,
+    limit: int | None = None,
+    on_pin_found: Callable[[int], None] | None = None,
+) -> list[Pin]:
     """Scrape pins from a Pinterest board URL.
+
+    Args:
+        canonical_url: The canonical Pinterest board URL.
+        limit: Optional max number of pins to scrape.
+        on_pin_found: Optional callback invoked with the current pin count
+            whenever new pins are discovered (for live progress display).
 
     Returns:
         A list of :class:`~pinterest_export.models.Pin` instances, deduplicated
@@ -128,6 +139,9 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[Pin
                         board_url=canonical_url,
                     ))
 
+                    if on_pin_found is not None:
+                        on_pin_found(len(pins))
+
                     if limit is not None and len(pins) >= limit:
                         break
 
@@ -139,6 +153,10 @@ async def scrape_board(canonical_url: str, limit: int | None = None) -> list[Pin
     return pins
 
 
-def scrape_board_sync(canonical_url: str, limit: int | None = None) -> list[Pin]:
+def scrape_board_sync(
+    canonical_url: str,
+    limit: int | None = None,
+    on_pin_found: Callable[[int], None] | None = None,
+) -> list[Pin]:
     """Synchronous wrapper for scrape_board."""
-    return asyncio.run(scrape_board(canonical_url, limit))
+    return asyncio.run(scrape_board(canonical_url, limit=limit, on_pin_found=on_pin_found))
