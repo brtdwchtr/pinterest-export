@@ -48,7 +48,7 @@ async def _download_one(
     async with sem:
         await asyncio.sleep(rate_limit)
         try:
-            resp = await client.get(pin.image_url, follow_redirects=True, timeout=20)
+            resp = await client.get(pin.image_url, timeout=20)
             resp.raise_for_status()
             dest.write_bytes(resp.content)
             logger.debug("Downloaded pin %s → %s", pin.id, dest)

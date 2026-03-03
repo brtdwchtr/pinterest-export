@@ -49,8 +49,6 @@ def test_extension_unknown_defaults_to_jpg():
 @pytest.mark.asyncio
 async def test_download_pins_skips_cached(tmp_path):
     pin = _make_pin()
-    from pinterest_export.image_cache import _cache_key, _extension
-
     key = _cache_key(pin.image_url)
     ext = _extension(pin.image_url)
     cached_file = tmp_path / f"{key}{ext}"
