@@ -78,6 +78,26 @@ def export_markdown(
         lines.append(f"- **Image URL:** {pin.image_url}")
         if image_paths and pin.id in image_paths:
             lines.append(f"- **Local image:** {image_paths[pin.id]}")
+
+        vision_description = pin.extra.get("vision_description")
+        if vision_description:
+            lines.append(f"- **Vision description:** {vision_description}")
+
+        vision_tags = pin.extra.get("vision_tags")
+        if isinstance(vision_tags, list) and vision_tags:
+            lines.append(f"- **Vision tags:** {', '.join(str(tag) for tag in vision_tags)}")
+
+        vision_colors = pin.extra.get("vision_colors")
+        if isinstance(vision_colors, list) and vision_colors:
+            lines.append(f"- **Vision colors:** {', '.join(str(color) for color in vision_colors)}")
+
+        vision_style = pin.extra.get("vision_style")
+        if isinstance(vision_style, list) and vision_style:
+            lines.append(f"- **Vision style:** {', '.join(str(style) for style in vision_style)}")
+
+        vision_mood = pin.extra.get("vision_mood")
+        if vision_mood:
+            lines.append(f"- **Vision mood:** {vision_mood}")
         lines.append("")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
