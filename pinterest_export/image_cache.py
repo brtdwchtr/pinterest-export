@@ -1,4 +1,4 @@
-"""Async image downloader with local SHA256-based cache."""
+"""Async image downloader with local SHA256-based cache, retry, and rate limiting."""
 
 import asyncio
 import hashlib
@@ -9,12 +9,15 @@ from urllib.parse import urlparse
 import httpx
 
 from pinterest_export.models import Pin
+from pinterest_export.retry import retry_async
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "pinterest-export" / "images"
 MAX_CONCURRENCY = 5
 DEFAULT_RATE_LIMIT = 0.3  # seconds between requests per semaphore slot
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_RETRY_BASE_DELAY = 1.0
 
 
 def _cache_key(image_url: str) -> str:
@@ -35,8 +38,10 @@ async def _download_one(
     pin: Pin,
     cache_dir: Path,
     rate_limit: float,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_base_delay: float = DEFAULT_RETRY_BASE_DELAY,
 ) -> tuple[str, Path | None]:
-    """Download a single pin image. Returns (pin.id, local_path | None)."""
+    """Download a single pin image with retry + back-off. Returns (pin.id, local_path | None)."""
     key = _cache_key(pin.image_url)
     ext = _extension(pin.image_url)
     dest = cache_dir / f"{key}{ext}"
@@ -47,14 +52,25 @@ async def _download_one(
 
     async with sem:
         await asyncio.sleep(rate_limit)
-        try:
+
+        async def _attempt() -> Path:
             resp = await client.get(pin.image_url, timeout=20)
             resp.raise_for_status()
             dest.write_bytes(resp.content)
-            logger.debug("Downloaded pin %s → %s", pin.id, dest)
-            return pin.id, dest
+            return dest
+
+        try:
+            path = await retry_async(
+                _attempt,
+                max_attempts=max_retries,
+                base_delay=retry_base_delay,
+                label=f"pin {pin.id}",
+            )
+            logger.debug("Downloaded pin %s → %s", pin.id, path)
+            return pin.id, path
         except Exception as exc:
-            logger.warning("Failed to download pin %s (%s): %s", pin.id, pin.image_url, exc)
+            logger.warning("Failed to download pin %s (%s) after %d attempts: %s",
+                           pin.id, pin.image_url, max_retries, exc)
             return pin.id, None
 
 
@@ -63,6 +79,8 @@ async def download_pins(
     cache_dir: Path = DEFAULT_CACHE_DIR,
     rate_limit: float = DEFAULT_RATE_LIMIT,
     max_concurrency: int = MAX_CONCURRENCY,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    retry_base_delay: float = DEFAULT_RETRY_BASE_DELAY,
 ) -> dict[str, Path]:
     """Download images for a list of pins to a local cache directory.
 
@@ -71,6 +89,8 @@ async def download_pins(
         cache_dir: Directory to store downloaded images (created if absent).
         rate_limit: Seconds to wait between requests per concurrent slot.
         max_concurrency: Maximum simultaneous HTTP downloads.
+        max_retries: Total attempts per image (including first try).
+        retry_base_delay: Initial back-off delay in seconds (doubles per retry).
 
     Returns:
         A mapping of pin_id → local Path for successfully downloaded images.
@@ -89,7 +109,8 @@ async def download_pins(
 
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         tasks = [
-            _download_one(client, sem, pin, cache_dir, rate_limit) for pin in pins
+            _download_one(client, sem, pin, cache_dir, rate_limit, max_retries, retry_base_delay)
+            for pin in pins
         ]
         results = await asyncio.gather(*tasks)
 
