@@ -70,3 +70,24 @@ def test_export_markdown_no_title_fallback(tmp_path):
 
     content = out.read_text()
     assert "(no title)" in content
+
+
+def test_export_markdown_includes_vision_metadata(tmp_path):
+    pins = _make_pins()
+    pins[0].extra = {
+        "vision_description": "A cozy vintage chair in warm daylight.",
+        "vision_tags": ["vintage", "chair", "cozy"],
+        "vision_colors": ["#A67C52", "#F5EBDD"],
+        "vision_style": ["rustic", "classic"],
+        "vision_mood": "warm",
+    }
+
+    out = tmp_path / "board.md"
+    export_markdown(pins, "https://www.pinterest.com/user/board/", out)
+
+    content = out.read_text()
+    assert "Vision description" in content
+    assert "vintage, chair, cozy" in content
+    assert "#A67C52, #F5EBDD" in content
+    assert "rustic, classic" in content
+    assert "Vision mood:** warm" in content
