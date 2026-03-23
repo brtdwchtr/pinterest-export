@@ -44,6 +44,12 @@ pinterest-export https://www.pinterest.com/username/boardname --output-dir ./my-
 # Also download all images
 pinterest-export https://www.pinterest.com/username/boardname --cache-images
 
+# Add Gemini Vision analysis per pin
+pinterest-export https://www.pinterest.com/username/boardname --vision
+
+# Increase Gemini analysis parallelism
+pinterest-export https://www.pinterest.com/username/boardname --vision --vision-concurrency 10
+
 # Scrape only (no files written)
 pinterest-export https://www.pinterest.com/username/boardname --no-export
 
@@ -80,19 +86,27 @@ LLM-optimised Markdown — ready to paste into Claude, GPT, or any AI tool as co
 ### Cached images
 When `--cache-images` is set, all pin images are downloaded to a local cache directory and referenced by their Pinterest image ID. Subsequent exports reuse cached images.
 
+### Vision metadata
+When `--vision` is enabled (with `GEMINI_API_KEY` or `GOOGLE_API_KEY` set), each pin is enriched with:
+- `vision_description`
+- `vision_tags`
+- `vision_colors`
+- `vision_style`
+- `vision_mood`
+
 ## Features
 
 - Scrapes public Pinterest boards via Playwright (handles infinite scroll)
 - Rich live progress UI: real-time pin count + image download progress bar
 - JSON export with full structured metadata
 - Markdown export optimised for LLM context windows
+- Optional Gemini Flash (`gemini-2.0-flash`) analysis per pin
 - Local image cache with concurrent downloads
 - `--limit` flag for controlled scrapes
 - `--no-export` flag for dry runs / in-memory use
 
 ## Roadmap
 
-- [#5](https://github.com/brtdwchtr/pinterest-export/issues/5) Vision AI analysis (per-pin descriptions, tags, themes)
 - [#6](https://github.com/brtdwchtr/pinterest-export/issues/6) Theme clustering across boards
 - [#7](https://github.com/brtdwchtr/pinterest-export/issues/7) HTML gallery generator
 - [#11](https://github.com/brtdwchtr/pinterest-export/issues/11) Config file support (`.pinterest-export.toml`)

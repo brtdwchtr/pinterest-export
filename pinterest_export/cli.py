@@ -1,6 +1,7 @@
 """CLI entry point for pinterest-export."""
 
 import asyncio
+import os
 from pathlib import Path
 
 import click
@@ -25,6 +26,7 @@ from pinterest_export.exporter import export_json, export_markdown
 from pinterest_export.image_cache import download_pins
 from pinterest_export.scraper import scrape_board_sync
 from pinterest_export.url_parser import parse_board_url
+from pinterest_export.vision import analyze_pins
 
 console = Console()
 
@@ -60,7 +62,28 @@ def _make_scrape_status(pin_count: int, label: str = "Scraping board…") -> Tex
     default=False,
     help="Skip JSON/Markdown export — just scrape and display a summary.",
 )
-def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool, no_export: bool):
+@click.option(
+    "--vision",
+    is_flag=True,
+    default=False,
+    help="Analyze each pin image with Gemini Vision and enrich exports.",
+)
+@click.option(
+    "--vision-concurrency",
+    default=5,
+    type=int,
+    show_default=True,
+    help="Max parallel Gemini Vision analyses when --vision is enabled.",
+)
+def main(
+    url: str,
+    limit: int | None,
+    output_dir: str | None,
+    cache_images: bool,
+    no_export: bool,
+    vision: bool,
+    vision_concurrency: int,
+):
     """Scrape a Pinterest board and export pin data.
 
     URL is the Pinterest board URL (e.g. https://www.pinterest.com/user/boardname/).
@@ -70,6 +93,9 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
     """
     if limit is not None and limit <= 0:
         console.print("[red]Error:[/red] --limit must be a positive integer.")
+        raise SystemExit(1)
+    if vision_concurrency <= 0:
+        console.print("[red]Error:[/red] --vision-concurrency must be a positive integer.")
         raise SystemExit(1)
 
     # ── Parse URL ────────────────────────────────────────────────────────────
@@ -105,6 +131,38 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
     if not pins:
         console.print("[yellow]No pins found — check the URL and try again.[/yellow]")
         raise SystemExit(0)
+
+    # ── Vision analysis (optional) ───────────────────────────────────────────
+    analyzed_count = 0
+    if vision:
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            console.print(
+                "[red]Error:[/red] --vision requires GEMINI_API_KEY "
+                "(or GOOGLE_API_KEY) to be set."
+            )
+            raise SystemExit(1)
+
+        with console.status(f"🔍 Analyzing {len(pins)} pins with Gemini Vision..."):
+            asyncio.run(analyze_pins(pins, api_key=api_key, concurrency=vision_concurrency))
+
+        analyzed_count = sum(
+            1
+            for pin in pins
+            if any(
+                [
+                    pin.extra.get("vision_description"),
+                    pin.extra.get("vision_tags"),
+                    pin.extra.get("vision_colors"),
+                    pin.extra.get("vision_style"),
+                    pin.extra.get("vision_mood"),
+                ]
+            )
+        )
+        console.print(
+            f"[bold green]✓[/bold green] Vision metadata added for "
+            f"[bold]{analyzed_count}[/bold] / {len(pins)} pins.\n"
+        )
 
     # ── Download images (optional) ────────────────────────────────────────────
     image_paths: dict[str, Path] = {}
@@ -180,6 +238,8 @@ def main(url: str, limit: int | None, output_dir: str | None, cache_images: bool
 
     table.add_row("Board", board_slug)
     table.add_row("Pins scraped", str(len(pins)))
+    if vision:
+        table.add_row("Vision analyzed", f"{analyzed_count}/{len(pins)}")
 
     if cache_images:
         table.add_row("Images cached", str(len(image_paths)))

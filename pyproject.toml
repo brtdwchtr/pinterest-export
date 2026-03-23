@@ -30,6 +30,7 @@ dependencies = [
     "jinja2",
     "click",
     "rich",
+    "google-generativeai",
 ]
 
 [project.optional-dependencies]
